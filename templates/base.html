@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Auto-refresh every 30 seconds to ensure real-time task updates -->
+    <meta http-equiv="refresh" content="120">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    
+    <!-- External Style Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Custom CSS for animations -->
+    <style>
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        
+        .overdue-task {
+            animation: pulse 2s infinite;
+        }
+        
+        .countdown-flash {
+            animation: flash 1s infinite;
+        }
+        
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <!-- Brand Logo with Dashboard Link -->
+            <a class="navbar-brand" href="{% url 'home' %}">TaskManager</a>
+            
+            <!-- User Greeting (Authenticated Users Only) -->
+            {% if user.is_authenticated %}
+            <span class="navbar-text text-light ms-3">
+                Welcome, {{ user.username }}
+            </span>
+            {% endif %}
+            
+            <!-- Navigation Menu -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if user.is_authenticated %}
+                        <!-- Authenticated User Navigation -->
+                        <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'task_list' %}">My Tasks</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'create_task' %}">Add Task</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
+                    {% else %}
+                        <!-- Guest Navigation -->
+                        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Register</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Messages Display -->
+    <div class="container mt-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+    
+    <!-- Main Content Area -->
+    <main class="container mt-4">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- ============================================================================
+         CLIENT-SIDE DEADLINE COUNTER SYSTEM
+         Provides real-time deadline updates without full page reloads
+         ============================================================================ -->
+    
+    <script>
+        /**
+         * Updates all deadline counters on the page
+         * 
+         * Calculates remaining time for each task and applies appropriate
+         * visual styling based on urgency level (overdue, critical, warning, safe)
+         */
+        function updateAllTimers() {
+            document.querySelectorAll('.deadline-counter').forEach(counter => {
+                const dueStr = counter.getAttribute('data-due-date');
+                const timeStr = counter.getAttribute('data-due-time');
+                
+                // Skip elements without date data
+                if (!dueStr) return;
+                
+                // Construct complete datetime object
+                const dueDateTime = new Date(dueStr + 'T' + (timeStr || '23:59:59'));
+                const now = new Date();
+                const diffMs = dueDateTime - now;
+                
+                // Get the task card element
+                const taskCard = counter.closest('.card') || counter.closest('.task-card');
+                
+                // Overdue Task Handling
+                if (diffMs < 0) {
+                    counter.innerHTML = '<span class="text-danger fw-bold">⏰ OVERDUE!</span>';
+                    if (taskCard) {
+                        taskCard.classList.add('border-danger', 'border-3', 'overdue-task');
+                        
+                        // Flash effect for overdue tasks
+                        if (Math.floor(Date.now() / 500) % 2 === 0) {
+                            taskCard.style.boxShadow = '0 0 10px red';
+                        } else {
+                            taskCard.style.boxShadow = 'none';
+                        }
+                    }
+                } else {
+                    // Calculate time components for countdown display
+                    const totalSeconds = Math.floor(diffMs / 1000);
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+                    
+                    /**
+                     * Format countdown display based on remaining time
+                     * Applies color coding to indicate urgency level
+                     */
+                    if (hours > 24) {
+                        // More than 24 hours: Safe status (green)
+                        const days = Math.floor(hours / 24);
+                        const remainingHours = hours % 24;
+                        counter.textContent = `${days}d ${remainingHours}h left`;
+                        counter.className = 'deadline-counter text-success';
+                        if (taskCard) {
+                            taskCard.classList.remove('overdue-task');
+                            taskCard.style.boxShadow = 'none';
+                        }
+                    } else if (hours > 0) {
+                        // 1-24 hours: Warning status (yellow)
+                        counter.textContent = `${hours}h ${minutes}m left`;
+                        counter.className = 'deadline-counter text-warning';
+                        if (taskCard) {
+                            taskCard.classList.remove('overdue-task');
+                            taskCard.style.boxShadow = 'none';
+                        }
+                    } else if (minutes > 0) {
+                        // Less than 1 hour: Danger status (red)
+                        counter.textContent = `${minutes}m ${seconds}s left`;
+                        counter.className = 'deadline-counter text-danger';
+                        if (taskCard) {
+                            taskCard.classList.remove('overdue-task');
+                            // Flash for last hour
+                            if (minutes < 15) {
+                                taskCard.classList.add('countdown-flash');
+                            } else {
+                                taskCard.classList.remove('countdown-flash');
+                            }
+                        }
+                    } else {
+                        // Less than 1 minute: Critical status (bold red)
+                        counter.textContent = `${seconds}s left!`;
+                        counter.className = 'deadline-counter text-danger fw-bold';
+                        if (taskCard) {
+                            taskCard.classList.add('countdown-flash');
+                            taskCard.style.animation = 'pulse 1s infinite';
+                        }
+                    }
+                }
+            });
+        }
+        
+        /**
+         * AJAX Auto-Refresh Function (Updates data without page reload)
+         */
+        function autoRefreshData() {
+            // Check if we're on task list page
+            if (window.location.pathname.includes('/tasks/') || 
+                window.location.pathname === '/' ||
+                window.location.pathname.includes('/dashboard/')) {
+                
+                console.log('Auto-refreshing data at:', new Date().toLocaleTimeString());
+                
+                // Update countdowns
+                updateAllTimers();
+                
+                // Optional: Fetch new data via AJAX every 30 seconds
+                // (We'll add this later if needed)
+            }
+        }
+        
+        /**
+         * Initialize and maintain real-time countdown updates
+         */
+        
+        // Run when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial update
+            updateAllTimers();
+            
+            // Update countdowns every 5 seconds
+            setInterval(updateAllTimers, 5000);
+            
+            // Full auto-refresh every 30 seconds
+            setInterval(autoRefreshData, 30000);
+            
+            // Update when user comes back to tab
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    updateAllTimers();
+                    autoRefreshData();
+                }
+            });
+        });
+        
+        
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

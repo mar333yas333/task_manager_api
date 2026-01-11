@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Dashboard Header -->
+        <h1>Task Management Dashboard</h1>
+        <p class="lead">Welcome to your personal productivity hub, {{ user.username }}!</p>
+        
+        <!-- ============================================================================
+             PERFORMANCE METRICS SECTION
+             Key indicators for task management overview at a glance
+             ============================================================================ -->
+        <div class="row mt-4">
+            <!-- Total Tasks Card -->
+            <div class="col-md-3">
+                <div class="card text-white bg-primary mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Tasks</h5>
+                        <h2>{{ total_tasks }}</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Completed Tasks Card -->
+            <div class="col-md-3">
+                <div class="card text-white bg-success mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Completed</h5>
+                        <h2>{{ completed_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Overdue Tasks Card -->
+            <div class="col-md-3">
+                <div class="card text-white bg-danger mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Overdue</h5>
+                        <h2>{{ overdue_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tasks Due Soon Card (Within 3 Days) -->
+            <div class="col-md-3">
+                <div class="card text-white bg-warning mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Due Soon</h5>
+                        <h2>{{ due_soon_count }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ============================================================================
+             QUICK ACTIONS & UPCOMING DEADLINES SECTION
+             Main workflow area with task management shortcuts
+             ============================================================================ -->
+        <div class="row mt-4">
+            <div class="col-md-8">
+                <!-- Quick Task Management Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-bolt"></i> Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Full Task Inventory -->
+                            <div class="col-md-6">
+                                <a href="{% url 'task_list' %}" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                                    <i class="fas fa-list"></i> View All Tasks
+                                </a>
+                            </div>
+                            
+                            <!-- New Task Creation -->
+                            <div class="col-md-6">
+                                <a href="{% url 'create_task' %}" class="btn btn-success btn-lg w-100 mb-2">
+                                    <i class="fas fa-plus"></i> Add New Task
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-2">
+                            <!-- Overdue Task Filter -->
+                            <div class="col-md-6">
+                                <a href="{% url 'task_list' %}?filter=overdue" class="btn btn-outline-danger w-100 mb-2">
+                                    <i class="fas fa-exclamation-triangle"></i> View Overdue
+                                </a>
+                            </div>
+                            
+                            <!-- Today's Tasks Filter -->
+                            <div class="col-md-6">
+                                <a href="{% url 'task_list' %}?filter=today" class="btn btn-outline-warning w-100 mb-2">
+                                    <i class="fas fa-clock"></i> Due Today
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ============================================================================
+                     UPCOMING DEADLINES PANEL
+                     Displays tasks with approaching deadlines (next 7 days)
+                     ============================================================================ -->
+                {% if upcoming_tasks %}
+                <div class="card mt-4">
+                    <div class="card-header bg-warning">
+                        <h5><i class="fas fa-clock"></i> Upcoming Deadlines (Next 7 Days)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            {% for task in upcoming_tasks|slice:":5" %}
+                            <!-- Individual Task Deadline Item -->
+                            <a href="{% url 'update_task' task.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ task.title }}</h6>
+                                    <!-- Days Remaining Indicator -->
+                                    <small class="text-muted">{{ task.get_days_remaining }} days left</small>
+                                </div>
+                                <!-- Task Description Preview -->
+                                <p class="mb-1">{{ task.description|truncatechars:50 }}</p>
+                                <!-- Detailed Deadline Information -->
+                                <small>
+                                    <strong>Due:</strong> {{ task.due_date|date:"M d, Y" }}
+                                    {% if task.due_time %} at {{ task.due_time|time:"g:i A" }}{% endif %}
+                                </small>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- ============================================================================
+                 SIDEBAR: ACTIVITY & ANALYTICS SECTION
+                 Supplementary information panels for task management insights
+                 ============================================================================ -->
+            <div class="col-md-4">
+                <!-- Recent Task Activity Timeline -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-history"></i> Recent Activity</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_tasks %}
+                        <div class="list-group">
+                            {% for task in recent_tasks|slice:":5" %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <!-- Time Since Last Update -->
+                                    <small class="text-muted">{{ task.updated_at|timesince }} ago</small>
+                                </div>
+                                <!-- Activity Description with Status Icon -->
+                                <p class="mb-1">
+                                    {% if task.completed %}
+                                    <i class="fas fa-check text-success"></i> Completed: {{ task.title }}
+                                    {% else %}
+                                    <i class="fas fa-edit text-primary"></i> Updated: {{ task.title }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <!-- Empty State Message -->
+                        <p class="text-muted">No recent activity to display</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Priority Distribution Visualization -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-pie"></i> Priority Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Chart.js Canvas for Priority Breakdown -->
+                        <canvas id="priorityChart" width="100" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

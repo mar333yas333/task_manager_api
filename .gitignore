@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Django
+db.sqlite3
+*.log
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+
+# Testing files
+check_all_urls.py
+check_urls.py
+debug_urls.py
+test_final.py
+test_setup.py
+test_url.py
+

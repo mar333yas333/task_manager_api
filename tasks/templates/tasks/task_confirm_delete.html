@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Centered Confirmation Dialog Container -->
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <!-- Task Deletion Confirmation Card -->
+        <div class="card border-danger shadow">
+            <!-- Warning Header -->
+            <div class="card-header bg-danger text-white">
+                <h3 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h3>
+            </div>
+            
+            <!-- Confirmation Content -->
+            <div class="card-body">
+                <!-- Warning Message with Task Details -->
+                <div class="alert alert-warning" role="alert">
+                    <h5 class="alert-heading"><i class="fas fa-trash-alt me-2"></i>Permanent Action Warning</h5>
+                    <p class="mb-0">You are about to permanently delete the following task:</p>
+                </div>
+                
+                <!-- Task Information Display -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger">{{ task.title }}</h5>
+                        {% if task.description %}
+                        <p class="card-text">{{ task.description|truncatewords:20 }}</p>
+                        {% endif %}
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <strong>Priority:</strong> {{ task.get_priority_display }}<br>
+                                {% if task.due_date %}
+                                <strong>Due Date:</strong> {{ task.due_date|date:"F j, Y" }}
+                                {% endif %}
+                            </small>
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Final Warning Notice -->
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>This action cannot be undone.</strong> All task data will be permanently removed.
+                </div>
+                
+                <!-- Confirmation Form -->
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <!-- Cancel Button (Returns to Task List) -->
+                        <a href="{% url 'task_list' %}" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        
+                        <!-- Confirmation Button (Permanent Deletion) -->
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-2"></i>Permanently Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

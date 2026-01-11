@@ -1,0 +1,477 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ============================================================================
+     TASK MANAGEMENT HEADER
+     Combines title with filter navigation and new task creation
+     ============================================================================ -->
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tasks me-2"></i>Task Management</h1>
+    <div class="btn-group" role="group" aria-label="Task filtering controls">
+        <!-- All Tasks Filter -->
+        <a href="{% url 'task_list' %}" class="btn btn-outline-secondary 
+            {% if not filter_type %}active{% endif %}">
+            <i class="fas fa-list me-1"></i>All ({{ total_tasks }})
+        </a>
+        
+        <!-- Overdue Tasks Filter -->
+        <a href="?filter=overdue" class="btn btn-outline-danger 
+            {% if filter_type == 'overdue' %}active{% endif %}">
+            <i class="fas fa-exclamation-triangle me-1"></i>Overdue ({{ overdue_count }})
+        </a>
+        
+        <!-- Today's Tasks Filter -->
+        <a href="?filter=today" class="btn btn-outline-warning 
+            {% if filter_type == 'today' %}active{% endif %}">
+            <i class="fas fa-calendar-day me-1"></i>Today ({{ due_today_count }})
+        </a>
+        
+        <!-- This Week's Tasks Filter -->
+        <a href="?filter=week" class="btn btn-outline-info 
+            {% if filter_type == 'week' %}active{% endif %}">
+            <i class="fas fa-calendar-week me-1"></i>This Week
+        </a>
+        
+        <!-- Completed Tasks Filter -->
+        <a href="?filter=completed" class="btn btn-outline-success 
+            {% if filter_type == 'completed' %}active{% endif %}">
+            <i class="fas fa-check-circle me-1"></i>Completed ({{ completed_count }})
+        </a>
+        
+        <!-- Pending Tasks Filter -->
+        <a href="?filter=pending" class="btn btn-outline-primary 
+            {% if filter_type == 'pending' %}active{% endif %}">
+            <i class="fas fa-clock me-1"></i>Pending
+        </a>
+        
+        <!-- New Task Creation -->
+        <a href="{% url 'create_task' %}" class="btn btn-success">
+            <i class="fas fa-plus me-1"></i>New Task
+        </a>
+    </div>
+</div>
+
+<!-- ============================================================================
+     TASK ANALYTICS DASHBOARD
+     Visual overview of task distribution across different status categories
+     ============================================================================ -->
+
+<div class="row mb-4">
+    <!-- Total Tasks Overview -->
+    <div class="col-md-2">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-tasks"></i> Total</h5>
+                <h2>{{ total_tasks }}</h2>
+                <small class="opacity-75">All tasks</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Completed Tasks -->
+    <div class="col-md-2">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-check-circle"></i> Completed</h5>
+                <h2>{{ completed_count }}</h2>
+                <small class="opacity-75">Finished</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overdue Tasks -->
+    <div class="col-md-2">
+        <div class="card text-white bg-danger">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-exclamation-triangle"></i> Overdue</h5>
+                <h2>{{ overdue_count }}</h2>
+                <small class="opacity-75">Past deadline</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tasks Due Today -->
+    <div class="col-md-2">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-calendar-day"></i> Due Today</h5>
+                <h2>{{ due_today_count }}</h2>
+                <small class="opacity-75">Today's deadlines</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tasks Due Soon (Next 3 Days) -->
+    <div class="col-md-2">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-clock"></i> Due Soon</h5>
+                <h2>{{ due_soon_count }}</h2>
+                <small class="opacity-75">Next 3 days</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pending Tasks (Not Completed) -->
+    <div class="col-md-2">
+        <div class="card text-white bg-secondary">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-hourglass-half"></i> Pending</h5>
+                <h2>{{ total_tasks|add:"-"|add:completed_count }}</h2>
+                <small class="opacity-75">Awaiting completion</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================================
+     TASK DISPLAY GRID
+     Responsive card layout showing individual tasks with interactive controls
+     ============================================================================ -->
+
+<div class="row">
+    {% for task in tasks %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <!-- Task Card with Dynamic Status Styling -->
+        <div class="card task-card h-100 shadow-sm
+            {% if task.completed %}border-success completed-task{% endif %} 
+            {% if task.is_overdue %}border-danger overdue-task{% endif %}">
+            
+            <div class="card-body">
+                <!-- Task Header: Title and Status Badge -->
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="card-title mb-0">
+                        {% if task.completed %}
+                        <s class="text-muted">{{ task.title }}</s>
+                        {% else %}
+                        {{ task.title }}
+                        {% endif %}
+                    </h5>
+                    
+                    <!-- Dynamic Status Indicator Badge -->
+                    <span class="badge 
+                        {% if task.completed %}bg-success
+                        {% elif task.is_overdue %}bg-danger
+                        {% elif task.get_days_remaining == 0 %}bg-warning
+                        {% elif task.get_days_remaining and task.get_days_remaining <= 3 %}bg-warning
+                        {% else %}bg-secondary{% endif %}">
+                        {% if task.completed %}
+                        <i class="fas fa-check"></i> Completed
+                        {% elif task.is_overdue %}
+                        <i class="fas fa-exclamation-circle"></i> OVERDUE!
+                        {% elif task.get_days_remaining == 0 %}
+                        <i class="fas fa-calendar-day"></i> Due Today!
+                        {% elif task.get_days_remaining and task.get_days_remaining <= 3 %}
+                        <i class="fas fa-clock"></i> Due in {{ task.get_days_remaining }} days
+                        {% else %}
+                        {{ task.get_priority_display }}
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <!-- Priority Level Indicator -->
+                <div class="mb-3">
+                    <span class="badge 
+                        {% if task.priority == 1 %}bg-danger
+                        {% elif task.priority == 2 %}bg-success
+                        {% elif task.priority == 3 %}bg-warning
+                        {% else %}bg-secondary{% endif %}">
+                        <i class="fas fa-flag"></i> Priority: {{ task.get_priority_display }}
+                    </span>
+                </div>
+                
+                <!-- Task Description with Truncation -->
+                {% if task.description %}
+                <p class="card-text text-muted mb-3">
+                    {{ task.description|truncatechars:120 }}
+                </p>
+                {% endif %}
+                
+                <!-- ========================================================================
+                     DEADLINE COUNTDOWN SECTION
+                     Real-time deadline tracking with visual urgency indicators
+                     ======================================================================== -->
+                
+                {% if task.due_date %}
+                <div class="deadline-section mb-4 p-3 rounded
+                    {% if task.is_overdue %}bg-danger bg-opacity-10 border-danger
+                    {% elif task.get_days_remaining == 0 %}bg-warning bg-opacity-10 border-warning
+                    {% else %}bg-info bg-opacity-10 border-info{% endif %}">
+                    
+                    <h6 class="mb-2"><i class="far fa-clock"></i> Deadline Countdown</h6>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="deadline-details">
+                            <small class="text-muted">
+                                <strong>Due Date:</strong> {{ task.due_date|date:"M d, Y" }}
+                                {% if task.due_time %}
+                                <br><strong>Time:</strong> {{ task.due_time|time:"g:i A" }}
+                                {% else %}
+                                <br><strong>Time:</strong> End of day
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <!-- Real-time Countdown Display Element -->
+                        <div id="countdown-{{ task.id }}" class="countdown-display 
+                            {% if task.is_overdue %}text-danger fw-bold
+                            {% elif task.get_days_remaining == 0 %}text-warning fw-bold
+                            {% else %}text-success{% endif %}">
+                            {% if task.is_overdue %}
+                            ⏰ OVERDUE!
+                            {% elif task.get_time_remaining %}
+                            {{ task.get_time_remaining }}
+                            {% else %}
+                            No deadline set
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Data Attributes for JavaScript Processing -->
+                    <div class="deadline-data" style="display: none;"
+                         data-task-id="{{ task.id }}"
+                         data-due-date="{{ task.due_date|date:'Y-m-d' }}"
+                         data-due-time="{{ task.due_time|default:'23:59:59'|time:'H:i:s' }}"
+                         data-is-overdue="{{ task.is_overdue|yesno:'true,false' }}">
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- ========================================================================
+                     TASK ACTION CONTROLS
+                     Interactive buttons for task manipulation
+                     ======================================================================== -->
+                
+                <div class="btn-group w-100 mt-auto" role="group">
+                    <!-- Completion Toggle -->
+                    <a href="{% url 'toggle_task' task.pk %}" class="btn btn-sm {% if task.completed %}btn-warning{% else %}btn-success{% endif %}">
+                        {% if task.completed %}
+                        <i class="fas fa-undo"></i> Reopen
+                        {% else %}
+                        <i class="fas fa-check"></i> Complete
+                        {% endif %}
+                    </a>
+                    
+                    <!-- Edit Task -->
+                    <a href="{% url 'update_task' task.pk %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    
+                    <!-- Delete Task -->
+                    <a href="{% url 'delete_task' task.pk %}" class="btn btn-sm btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </div>
+                
+                <!-- Task Metadata Footer -->
+                <small class="text-muted d-block mt-3">
+                    <i class="far fa-calendar-plus"></i> Created: {{ task.created_at|date:"M d, Y" }}
+                    {% if task.updated_at != task.created_at %}
+                    | <i class="fas fa-history"></i> Updated: {{ task.updated_at|timesince }} ago
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <!-- Empty State: No Tasks Available -->
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle fa-2x mb-3"></i>
+            <h4>No tasks found</h4>
+            <p class="mb-0">Get started by creating your first task!</p>
+            <a href="{% url 'create_task' %}" class="btn btn-primary mt-2">
+                <i class="fas fa-plus"></i> Create Your First Task
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- ============================================================================
+     CLIENT-SIDE COUNTDOWN SYSTEM
+     JavaScript for real-time deadline updates without page reloads
+     ============================================================================ -->
+
+<script>
+/**
+ * REAL-TIME DEADLINE MANAGEMENT SYSTEM
+ * 
+ * Provides live countdown updates, visual urgency indicators,
+ * and automatic page synchronization for accurate deadline tracking.
+ */
+
+/**
+ * Updates countdown display for a single task
+ * @param {HTMLElement} taskElement - The hidden deadline data container
+ */
+function updateTaskCountdown(taskElement) {
+    const dueDate = taskElement.getAttribute('data-due-date');
+    const dueTime = taskElement.getAttribute('data-due-time');
+    const taskId = taskElement.getAttribute('data-task-id');
+    const countdownElement = document.getElementById('countdown-' + taskId);
+    
+    // Validate required elements
+    if (!dueDate || !countdownElement) return;
+    
+    // Calculate time difference
+    const dueDateTime = new Date(dueDate + 'T' + dueTime);
+    const now = new Date();
+    const diffMs = dueDateTime - now;
+    
+    // Locate task card for visual effects
+    const taskCard = countdownElement.closest('.task-card') || 
+                     countdownElement.closest('.card');
+    
+    // Handle overdue tasks
+    if (diffMs < 0) {
+        countdownElement.innerHTML = '<span class="text-danger fw-bold">⏰ OVERDUE!</span>';
+        countdownElement.className = 'countdown-display text-danger fw-bold';
+        
+        // Apply visual urgency indicators
+        if (taskCard) {
+            taskCard.classList.add('border-danger', 'border-3');
+            
+            // Create blinking effect for critical overdue status
+            const shouldBlink = Math.floor(Date.now() / 1000) % 2 === 0;
+            taskCard.style.boxShadow = shouldBlink ? '0 0 15px rgba(220, 53, 69, 0.7)' : 'none';
+        }
+    } else {
+        // Calculate remaining time components
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const days = Math.floor(totalSeconds / (3600 * 24));
+        const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        // Determine display format based on urgency
+        let countdownText = '';
+        let urgencyClass = '';
+        
+        if (days > 0) {
+            // Safe zone: More than 24 hours
+            countdownText = `${days}d ${hours}h`;
+            urgencyClass = 'text-success';
+        } else if (hours > 0) {
+            // Warning zone: Less than 24 hours
+            countdownText = `${hours}h ${minutes}m`;
+            urgencyClass = hours < 3 ? 'text-warning' : 'text-success';
+        } else if (minutes > 0) {
+            // Danger zone: Less than 1 hour
+            countdownText = `${minutes}m ${seconds}s`;
+            urgencyClass = minutes < 15 ? 'text-danger fw-bold' : 'text-warning';
+        } else {
+            // Critical zone: Less than 1 minute
+            countdownText = `${seconds}s!`;
+            urgencyClass = 'text-danger fw-bold';
+            
+            // Flash background for last-minute urgency
+            if (taskCard) {
+                const shouldFlash = Math.floor(Date.now() / 500) % 2 === 0;
+                taskCard.style.backgroundColor = shouldFlash ? 'rgba(255, 193, 7, 0.1)' : '';
+            }
+        }
+        
+        // Update display elements
+        countdownElement.textContent = countdownText + ' remaining';
+        countdownElement.className = 'countdown-display ' + urgencyClass;
+    }
+}
+
+/**
+ * Updates all task countdowns on the page
+ */
+function updateAllCountdowns() {
+    const deadlineElements = document.querySelectorAll('.deadline-data');
+    deadlineElements.forEach(updateTaskCountdown);
+}
+
+/**
+ * Initializes the countdown system and sets up periodic updates
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // Initial update
+    updateAllCountdowns();
+    
+    // Periodic updates every 5 seconds
+    const countdownInterval = setInterval(updateAllCountdowns, 5000);
+    
+    // Update when user returns to tab (visibility change)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            updateAllCountdowns();
+        }
+    });
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        clearInterval(countdownInterval);
+    });
+});
+
+/**
+ * Automatic page refresh for server synchronization
+ * Ensures task status remains accurate with server-side data
+ */
+setTimeout(function() {
+    window.location.reload();
+}, 120000); // Refresh every 2 minutes
+</script>
+
+<!-- ============================================================================
+     INLINE STYLING FOR VISUAL EFFECTS
+     Deadline urgency animations and responsive design enhancements
+     ============================================================================ -->
+
+<style>
+/* Countdown Display Styling */
+.countdown-display {
+    font-weight: bold;
+    font-size: 0.9rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    min-width: 120px;
+    text-align: center;
+}
+
+/* Pulsing Animation for Overdue Tasks */
+.overdue-task {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.6); }
+    70% { box-shadow: 0 0 0 12px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+/* Completed Task Visual Treatment */
+.completed-task {
+    opacity: 0.85;
+    background-color: rgba(25, 135, 84, 0.05);
+}
+
+/* Responsive Adjustments for Mobile */
+@media (max-width: 768px) {
+    .countdown-display {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+        min-width: 100px;
+    }
+    
+    .btn-group {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+        min-width: 120px;
+        margin-bottom: 5px;
+    }
+}
+</style>
+{% endblock %}
