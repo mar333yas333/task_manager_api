@@ -27,13 +27,13 @@ urlpatterns = [
     path('ajax/dashboard-stats/', views.get_dashboard_stats, name='dashboard_stats'),
     
     # ========== API URLs COME AFTER ==========
-    path('api/register/', views.RegisterView.as_view(), name='api-register'),
-    path('api/login/', views.LoginView.as_view(), name='api-login'),
-    path('api/logout/', views.ApiLogoutView.as_view(), name='api-logout'),
-    path('api/users/profile/', views.UserProfileView.as_view(), name='user-profile'),
-    path('api/dashboard/', views.DashboardView.as_view(), name='api-dashboard'),
-    path('api/health/', views.health_check, name='health-check'),
+    path('register/', views.RegisterView.as_view(), name='api-register'),
+    path('login/', views.LoginView.as_view(), name='api-login'),
+    path('logout/', views.ApiLogoutView.as_view(), name='api-logout'),
+    path('users/profile/', views.UserProfileView.as_view(), name='user-profile'),
+    path('dashboard/', views.DashboardView.as_view(), name='api-dashboard'),
+    path('health/', views.health_check, name='health-check'),
     
      #⚠️ API ROUTER - MUST COME AFTER FRONTEND!
-    path('api/', include(router.urls)),
+    path('', include(router.urls)),
 ]
