@@ -1,10 +1,6 @@
-asgiref==3.11.0
-Django==6.0.1
-django-cors-headers==4.9.0
-djangorestframework==3.16.1
-sqlparse==0.5.5
 Django==4.2.11
-djangorestframework==3.14.0
-django-cors-headers==4.3.1
-pymysql==1.1.0
-requests==2.31.0
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
+django-extensions==4.1
+mysqlclient==2.2.7
+
